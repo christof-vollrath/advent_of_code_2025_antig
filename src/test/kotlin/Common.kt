@@ -4,6 +4,7 @@ import kotlin.math.*
 fun readResource(name: String) = Thread.currentThread().contextClassLoader.getResource(name)?.readText()
 
 fun <T> List<List<T>>.transpose(): List<List<T>> {
+    if (isEmpty()) return emptyList()
     val result = mutableListOf<List<T>>()
     val n = get(0).size
     for (i in  0 until n) {
