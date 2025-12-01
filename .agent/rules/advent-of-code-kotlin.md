@@ -4,7 +4,7 @@ trigger: always_on
 
 - Use Kotlin as the main programming language
 - Use Gradle as the build system with kotlin kts
-- Strictly follow a TDD style developement
+- Strictly follow a TDD style development
 - Use kotest as a test framework
 - Use behavior spec as the main testing styles
 - When tests contains many input data elements use data driven tests
