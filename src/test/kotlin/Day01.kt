@@ -246,6 +246,9 @@ class Day01Part1Test : BehaviorSpec({
     }
 })
 
+/*
+Replaced the repeat loop in applyRotationsWithZeroCount2 with a constant-time calculation.
+
 fun applyRotationsWithZeroCount2(startPosition: Int, rotations: List<Rotation>): DialResult {
     var position = startPosition
     var zeroCount = 0
@@ -273,6 +276,31 @@ fun applyRotationsWithZeroCount2(startPosition: Int, rotations: List<Rotation>):
                 }
             }
         }
+    }
+
+    return DialResult(position, zeroCount)
+}
+ */
+
+fun applyRotationsWithZeroCount2(startPosition: Int, rotations: List<Rotation>): DialResult {
+    var position = startPosition
+    var zeroCount = 0
+
+    // The formula calculates the distance to the first zero crossing
+    // and then determines how many additional full circles (100 steps)
+    // fit into the remaining distance.
+    for (rotation in rotations) {
+        val distance = rotation.distance
+        val firstZeroDist = when (rotation.direction) {
+            Direction.RIGHT -> if (position == 0) 100 else 100 - position
+            Direction.LEFT -> if (position == 0) 100 else position
+        }
+
+        if (distance >= firstZeroDist) {
+            zeroCount += 1 + (distance - firstZeroDist) / 100
+        }
+
+        position = applyRotation(position, rotation)
     }
 
     return DialResult(position, zeroCount)
