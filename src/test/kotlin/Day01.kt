@@ -2,11 +2,6 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.datatest.withData
 
-// Day 1: Safe Dial Rotation
-// The safe has a dial with numbers 0-99 in a circle
-// Rotations: L (left/lower) or R (right/higher) followed by distance
-// Wraps around: L from 0 goes to 99, R from 99 goes to 0
-
 enum class Direction {
     LEFT, RIGHT;
     
@@ -246,6 +241,151 @@ class Day01Part1Test : BehaviorSpec({
                 val rotations = parseRotations(input)
                 val zeroCount = applyRotationsWithZeroCount(50, rotations).zeroCount
                 zeroCount shouldBe 980
+            }
+        }
+    }
+})
+
+fun applyRotationsWithZeroCount2(startPosition: Int, rotations: List<Rotation>): DialResult {
+    var position = startPosition
+    var zeroCount = 0
+
+    for (rotation in rotations) {
+        val distance = rotation.distance
+
+        when (rotation.direction) {
+            Direction.RIGHT -> {
+                // Count how many times we pass through 0 while rotating right
+                repeat(distance) {
+                    position = (position + 1) % 100
+                    if (position == 0) {
+                        zeroCount++
+                    }
+                }
+            }
+            Direction.LEFT -> {
+                // Count how many times we pass through 0 while rotating left
+                repeat(distance) {
+                    position = if (position == 0) 99 else position - 1
+                    if (position == 0) {
+                        zeroCount++
+                    }
+                }
+            }
+        }
+    }
+
+    return DialResult(position, zeroCount)
+}
+
+class Day01Part2Test : BehaviorSpec({
+    Given("R1000 from position 50") {
+        val rotations = listOf(
+            Rotation(Direction.RIGHT, 1000)
+        )
+
+        Then("should pass through 0 ten times") {
+            val result = applyRotationsWithZeroCount2(50, rotations)
+            result.finalPosition shouldBe 50  // 50 + 1000 = 1050 % 100 = 50
+            result.zeroCount shouldBe 10      // Passes through 0 ten times
+        }
+    }
+
+    Given("L50 from position 50") {
+        val rotations = listOf(
+            Rotation(Direction.LEFT, 50)
+        )
+
+        Then("should land on 0 exactly once") {
+            val result = applyRotationsWithZeroCount2(50, rotations)
+            result.finalPosition shouldBe 0
+            result.zeroCount shouldBe 1  // Lands on 0 after 50 clicks left
+        }
+    }
+
+    Given("R50 from position 50") {
+        val rotations = listOf(
+            Rotation(Direction.RIGHT, 50)
+        )
+
+        Then("should pass through 0 once") {
+            val result = applyRotationsWithZeroCount2(50, rotations)
+            result.finalPosition shouldBe 0  // 50 + 50 = 100 % 100 = 0
+            result.zeroCount shouldBe 1      // Passes through 0 once
+        }
+    }
+
+    Given("L100 from position 50") {
+        val rotations = listOf(
+            Rotation(Direction.LEFT, 100)
+        )
+
+        Then("should pass through 0 once and return to 50") {
+            val result = applyRotationsWithZeroCount2(50, rotations)
+            result.finalPosition shouldBe 50  // Full circle back
+            result.zeroCount shouldBe 1       // Passes through 0 once at position 50
+        }
+    }
+
+    Given("R200 from position 0") {
+        val rotations = listOf(
+            Rotation(Direction.RIGHT, 200)
+        )
+
+        Then("should pass through 0 twice") {
+            val result = applyRotationsWithZeroCount2(0, rotations)
+            result.finalPosition shouldBe 0  // 0 + 200 = 200 % 100 = 0
+            result.zeroCount shouldBe 2      // At start (after first click) and after 100 clicks
+        }
+    }
+
+    Given("a sequence that crosses 0 multiple times") {
+        val rotations = listOf(
+            Rotation(Direction.RIGHT, 50),  // 50 -> 0 (crosses once)
+            Rotation(Direction.LEFT, 100),  // 0 -> 0 (crosses once at position 50)
+            Rotation(Direction.RIGHT, 150)  // 0 -> 50 (crosses once at position 50)
+        )
+
+        Then("should count all crossings") {
+            val result = applyRotationsWithZeroCount2(50, rotations)
+            result.finalPosition shouldBe 50
+            result.zeroCount shouldBe 3
+        }
+    }
+
+
+    Given("example") {
+        When("starting at 50 with the example sequence") {
+            val input = """
+                L68
+                L30
+                R48
+                L5
+                R60
+                L55
+                L1
+                L99
+                R14
+                L82
+            """.trimIndent()
+
+            Then("final position should be 32 and password (zero count) should be 6 with modified zero count") {
+                val rotations = parseRotations(input)
+                val (finalPosition, zeroCount) = applyRotationsWithZeroCount2(50, rotations)
+                finalPosition shouldBe 32
+                zeroCount shouldBe 6
+            }
+        }
+    }
+
+    Given("puzzle input") {
+        When("reading from day01input.txt") {
+            val input = readResource("day01input.txt")!!
+
+            Then("should calculate the correct password with click counting") {
+                val rotations = parseRotations(input)
+                val zeroCount = applyRotationsWithZeroCount2(50, rotations).zeroCount
+                zeroCount shouldBe 5961
             }
         }
     }
