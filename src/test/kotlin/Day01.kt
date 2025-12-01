@@ -43,11 +43,7 @@ fun applyRotation(currentPosition: Int, rotation: Rotation): Int {
     }
 }
 
-fun applyRotations(startPosition: Int, rotations: List<Rotation>): Int {
-    return rotations.fold(startPosition) { position, rotation ->
-        applyRotation(position, rotation)
-    }
-}
+fun applyRotations(startPosition: Int, rotations: List<Rotation>) = applyRotationsWithZeroCount(startPosition, rotations).finalPosition
 
 data class DialResult(val finalPosition: Int, val zeroCount: Int)
 
@@ -185,7 +181,6 @@ class Day01Part1Test : BehaviorSpec({
         }
     }
 
-
     Given("a sequence that never hits 0") {
         val rotations = listOf(
             Rotation(Direction.RIGHT, 10),
@@ -206,6 +201,16 @@ class Day01Part1Test : BehaviorSpec({
 
         Then("zero count should be 3") {
             applyRotationsWithZeroCount(50, rotations).zeroCount shouldBe 3
+        }
+    }
+
+    Given("R1000") {
+        val rotations = listOf(
+            Rotation(Direction.RIGHT, 1000),
+        )
+
+        Then("zero count should be 0") {
+            applyRotationsWithZeroCount(50, rotations).zeroCount shouldBe 0
         }
     }
 
