@@ -38,9 +38,9 @@ fun sumInvalidIdsInRanges(input: String): Long {
 }
 
 class Day02Part1Test : BehaviorSpec({
-    given("an int id") {
-        `when`("checking if it is invalid") {
-            then("it should correctly identify invalid and valid ids") {
+    Given("an int id") {
+        When("checking if it is invalid") {
+            Then("it should correctly identify invalid and valid ids") {
                 forAll(
                     row(55L, true),
                     row(6464L, true),
@@ -58,9 +58,9 @@ class Day02Part1Test : BehaviorSpec({
         }
     }
 
-    given("a range of ids") {
-        `when`("summing invalid ids") {
-            then("it should return the correct sum") {
+    Given("a range of ids") {
+        When("summing invalid ids") {
+            Then("it should return the correct sum") {
                 forAll(
                     row("11-22", 33L),
                     row("1188511880-1188511890", 1188511885L),
@@ -72,9 +72,9 @@ class Day02Part1Test : BehaviorSpec({
         }
     }
 
-    given("multiple ranges of ids") {
-        `when`("summing invalid ids") {
-            then("it should return the correct sum for the complex example") {
+    Given("multiple ranges of ids") {
+        When("summing invalid ids") {
+            Then("it should return the correct sum for the complex example") {
                 val input = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224," +
                         "1698522-1698528,446443-446449,38593856-38593862,565653-565659," +
                         "824824821-824824827,2121212118-2121212124"
@@ -83,9 +83,9 @@ class Day02Part1Test : BehaviorSpec({
         }
     }
 
-    given("the puzzle input") {
-        `when`("calculating the sum of invalid ids") {
-            then("it should print the result") {
+    Given("the puzzle input") {
+        When("calculating the sum of invalid ids") {
+            Then("it should print the result") {
                 val input = readResource("day02Input.txt")!!
                 val result = sumInvalidIdsInRanges(input)
                 println("Result for Day 2 Part 1: $result")
