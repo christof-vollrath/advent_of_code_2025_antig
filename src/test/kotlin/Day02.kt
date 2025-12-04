@@ -100,16 +100,13 @@ fun isInvalidId2(input: Long): Boolean {
 }
 fun isInvalidId2(input: String): Boolean {
     val len = input.length
-    for (l in 1..len / 2) {
-        if (len % l == 0) {
-            val pattern = input.substring(0, l)
-            val repeated = pattern.repeat(len / l)
-            if (input == repeated) {
-                return true
-            }
+    return divisors(len)
+        .filter { it != len } // Exclude the number itself
+        .any { patternLength ->
+            val pattern = input.substring(0, patternLength)
+            val repeated = pattern.repeat(len / patternLength)
+            input == repeated
         }
-    }
-    return false
 }
 
 fun sumInvalidIdsInRange2(range: String): Long {
