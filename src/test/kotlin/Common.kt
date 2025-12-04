@@ -97,6 +97,22 @@ data class CartesianCoordinate(val x: Double, val y: Double) {
     }
 }
 
+fun divisors(n: Int): Sequence<Int> = sequence {
+    val largerDivisors = mutableListOf<Int>()
+    val sqrtN = sqrt(n.toDouble()).toInt()
+    
+    for (i in 1..sqrtN) {
+        if (n % i == 0) {
+            yield(i)
+            val complement = n / i
+            if (complement != i) {
+                largerDivisors.add(complement)
+            }
+        }
+    }
+    
+    yieldAll(largerDivisors.reversed())
+}
 
 data class Coord2(val x: Int, val y: Int) {
     infix fun manhattanDistance(other: Coord2): Int = abs(x - other.x) + abs(y - other.y)

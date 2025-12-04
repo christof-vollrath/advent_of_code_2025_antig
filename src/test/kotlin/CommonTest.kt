@@ -115,3 +115,57 @@ class CommonTest_transpose : StringSpec({
     }
 })
 
+class CommonTest_divisors : StringSpec({
+    data class DivisorsTestCase(
+        val name: String,
+        val input: Int,
+        val expected: List<Int>
+    )
+
+    withData(
+        nameFn = { it.name },
+        DivisorsTestCase(
+            name = "divisors of 1",
+            input = 1,
+            expected = listOf(1)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 2 (prime)",
+            input = 2,
+            expected = listOf(1, 2)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 12",
+            input = 12,
+            expected = listOf(1, 2, 3, 4, 6, 12)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 28 (perfect number)",
+            input = 28,
+            expected = listOf(1, 2, 4, 7, 14, 28)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 36 (perfect square)",
+            input = 36,
+            expected = listOf(1, 2, 3, 4, 6, 9, 12, 18, 36)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 17 (prime)",
+            input = 17,
+            expected = listOf(1, 17)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 100",
+            input = 100,
+            expected = listOf(1, 2, 4, 5, 10, 20, 25, 50, 100)
+        ),
+        DivisorsTestCase(
+            name = "divisors of 60",
+            input = 60,
+            expected = listOf(1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60)
+        )
+    ) { testCase ->
+        divisors(testCase.input).toList() shouldBe testCase.expected
+    }
+})
+
