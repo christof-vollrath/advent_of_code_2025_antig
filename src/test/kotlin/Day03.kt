@@ -76,36 +76,11 @@ fun largestJoltage2(bank: String): Long {
     return current.joinToString("").toLong()
 }
 
-fun largestJoltage2V2(bank: String): Long {
-    if (bank.length < 2) return bank.toLongOrNull() ?: 0L
-    
-    // Alternative approach: Iteratively remove the smallest digit one at a time
-    var current = bank
-    val targetLength = 12
-    
-    while (current.length > targetLength) {
-        // Find the smallest digit in the current string
-        val minDigit = current.minOrNull()
-        
-        // Remove the first occurrence of the smallest digit
-        if (minDigit != null) {
-            val indexToRemove = current.indexOf(minDigit)
-            current = current.removeRange(indexToRemove, indexToRemove + 1)
-        }
-    }
-    
-    return current.toLong()
-}
-
 fun sumLargestJoltage2(input: String) =
     input.split("\n")
         .map { it.trim() }
         .filter { it.isNotBlank() }
         .sumOf { largestJoltage2(it) }
-
-
-
-
 
 class Day03Part1Test : BehaviorSpec({
     Given("a bank of batteries") {
@@ -160,10 +135,6 @@ class Day03Part2Test : BehaviorSpec({
                     row("818181911112111", 888911112111L)
                 ) { bank, expected ->
                     largestJoltage2(bank) shouldBe expected
-                    // Note: largestJoltage2V2 (iterative smallest removal) doesn't work for all cases
-                    // Example: "234234234234278" -> produces 343434234278 instead of 434234234278
-                    // The issue: removing smallest digits iteratively doesn't account for position
-                    // The correct approach (V1) removes digits where digit[i] < digit[i+1]
                 }
             }
         }
