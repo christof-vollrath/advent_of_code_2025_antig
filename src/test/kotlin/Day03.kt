@@ -43,6 +43,70 @@ fun sumLargestJoltage(input: String) =
         .map { it.trim() }
         .filter { it.isNotBlank() }.sumOf { largestJoltageFunctional(it) }
 
+fun largestJoltage2(bank: String): Long {
+    if (bank.length < 2) return bank.toLongOrNull() ?: 0L
+    
+    val current = bank.toMutableList()
+    
+    // Based on examples, it seems we remove (length - 12) digits
+    // Strategy: Greedily remove digits where current[i] < current[i+1]
+    val digitsToRemove = bank.length - 12
+    var removed = 0
+    
+    while (removed < digitsToRemove && current.size > 2) {
+        var foundRemoval = false
+        
+        // Find the first position where current[i] < current[i+1]
+        for (i in 0 until current.size - 1) {
+            if (current[i] < current[i + 1]) {
+                current.removeAt(i)
+                removed++
+                foundRemoval = true
+                break
+            }
+        }
+        
+        // If no such position found, remove from the end
+        if (!foundRemoval) {
+            current.removeAt(current.size - 1)
+            removed++
+        }
+    }
+    
+    return current.joinToString("").toLong()
+}
+
+fun largestJoltage2V2(bank: String): Long {
+    if (bank.length < 2) return bank.toLongOrNull() ?: 0L
+    
+    // Alternative approach: Iteratively remove the smallest digit one at a time
+    var current = bank
+    val targetLength = 12
+    
+    while (current.length > targetLength) {
+        // Find the smallest digit in the current string
+        val minDigit = current.minOrNull()
+        
+        // Remove the first occurrence of the smallest digit
+        if (minDigit != null) {
+            val indexToRemove = current.indexOf(minDigit)
+            current = current.removeRange(indexToRemove, indexToRemove + 1)
+        }
+    }
+    
+    return current.toLong()
+}
+
+fun sumLargestJoltage2(input: String) =
+    input.split("\n")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .sumOf { largestJoltage2(it) }
+
+
+
+
+
 class Day03Part1Test : BehaviorSpec({
     Given("a bank of batteries") {
         When("finding the largest joltage") {
@@ -84,6 +148,39 @@ class Day03Part1Test : BehaviorSpec({
         }
     }
 })
+
+class Day03Part2Test : BehaviorSpec({
+    Given("a bank of batteries for part 2") {
+        When("finding the largest joltage by removing smallest digits") {
+            Then("it should return the correct maximum joltage") {
+                forAll(
+                    row("987654321111111", 987654321111L),
+                    row("811111111111119", 811111111119L),
+                    row("234234234234278", 434234234278L),
+                    row("818181911112111", 888911112111L)
+                ) { bank, expected ->
+                    largestJoltage2(bank) shouldBe expected
+                    // Note: largestJoltage2V2 (iterative smallest removal) doesn't work for all cases
+                    // Example: "234234234234278" -> produces 343434234278 instead of 434234234278
+                    // The issue: removing smallest digits iteratively doesn't account for position
+                    // The correct approach (V1) removes digits where digit[i] < digit[i+1]
+                }
+            }
+        }
+    }
+    
+    Given("the puzzle input") {
+        val input = readResource("day03Input.txt")!!
+        When("calculating the sum of largest joltages for part 2") {
+            val result = sumLargestJoltage2(input)
+            Then("it should print the result") {
+                println("Result for Day 3 Part 2: $result")
+                result shouldBe 168027167146027L
+            }
+        }
+    }
+})
+
 
 class Day03Part1PerformanceTest : BehaviorSpec({
     Given("a large bank of batteries") {
