@@ -34,37 +34,20 @@ fun countFreshIngredients(ranges: List<LongRange>, ids: List<Long>): Int =
 fun isFresh(id: Long, ranges: List<LongRange>): Boolean =
     ranges.any { range -> id in range }
 
-fun mergeRanges(ranges: List<LongRange>): List<LongRange> {
-    if (ranges.isEmpty()) return emptyList()
+fun mergeRanges(ranges: List<LongRange>): List<LongRange> = sequence {
+    if (ranges.isEmpty()) return@sequence
     val sorted = ranges.sortedBy { it.first }
-    val merged = mutableListOf<LongRange>()
     var current = sorted[0]
-    for (i in 1 until sorted.size) {
-        val next = sorted[i]
-        if (current.last >= next.first - 1) { // -1 because 3-5 and 6-8 are contiguous if we talk about integers, but here overlapping means sharing a number?
-            // "The ranges can also overlap; an ingredient ID is fresh if it is in any range."
-            // If 3-5 and 5-7, 5 is in both.
-            // If 3-5 and 6-7, they are distinct sets of integers.
-            // So strictly overlapping or adjacent?
-            // Example: 10-14 and 12-18. Overlap is 12,13,14.
-            // If we had 10-14 and 15-20, they don't overlap. 14 is fresh, 15 is fresh.
-            // But if we want total count, 10-14 (5 items) + 15-20 (6 items) = 11 items.
-            // Merging 10-14 and 15-20 into 10-20 would give 11 items.
-            // So we can merge if they touch or overlap.
-            // 14 and 15 are adjacent.
-            // current.last >= next.first - 1 ?
-            // If current is 3-5, next is 6-8. 5 >= 6-1 (5). True. Merge to 3-8?
-            // 3,4,5 and 6,7,8. Total 6. 3..8 is 6 items. Correct.
-            // So yes, merge if adjacent or overlapping.
+    for (next in sorted.drop(1)) {
+        if (current.last >= next.first - 1) {
             current = current.first..maxOf(current.last, next.last)
         } else {
-            merged.add(current)
+            yield(current)
             current = next
         }
     }
-    merged.add(current)
-    return merged
-}
+    yield(current)
+}.toList()
 
 fun countAllFreshIngredients(input: String): Long =
     countAllFreshIngredients(parseFreshRanges(input))

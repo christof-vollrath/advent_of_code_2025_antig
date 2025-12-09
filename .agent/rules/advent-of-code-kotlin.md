@@ -15,3 +15,4 @@ trigger: always_on
 - For common utility functions check what is available in Common.kt and use it.
 - If you identify a common general need for a functionality put it to Common.kt
 - Use Kotlin single expression functions when possible
+- Prefer using Kotlin sequences instead mutable lists
