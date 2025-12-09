@@ -14,3 +14,4 @@ trigger: always_on
 - Combine also part 1 and part 2 in the same file
 - For common utility functions check what is available in Common.kt and use it.
 - If you identify a common general need for a functionality put it to Common.kt
+- Use Kotlin single expression functions when possible
