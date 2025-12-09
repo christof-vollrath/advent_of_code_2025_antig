@@ -162,4 +162,14 @@ class Day04Part1Test : BehaviorSpec({
             }
         }
     }
+    Given("the puzzle input") {
+        val input = readResource("day04Input.txt")!!
+        When("solving part 1") {
+            val result = solveDay04Part1(input)
+            Then("it should print the result") {
+                println("Result for Day 4 Part 1: $result")
+                result shouldBe 1344
+            }
+        }
+    }
 })
