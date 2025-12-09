@@ -47,6 +47,39 @@ fun solveDay04Part1(input: String): Int {
     return countAccessibleRolls(markedGrid)
 }
 
+// Complete solution for part 2
+fun solveDay04Part2(input: String): Int {
+    var grid = parseGrid(input)
+    var totalRemoved = 0
+    
+    while (true) {
+        val markedGrid = markAccessibleRolls(grid)
+        val removedCount = countAccessibleRolls(markedGrid)
+        
+        if (removedCount == 0) {
+            break
+        }
+        
+        totalRemoved += removedCount
+        
+        // Update grid: replace 'x' with '.' (removed) and keep others
+        // Note: markAccessibleRolls returns a grid where accessible '@' are replaced by 'x'
+        // We need to treat 'x' as removed, so they become '.' for the next iteration
+        // We need to transform the markedGrid into the next state grid.
+        // 'x' becomes '.' (empty space)
+        // '@' stays '@'
+        // '.' stays '.'
+        
+        grid = markedGrid.map { row ->
+            row.map { char ->
+                if (char == 'x') '.' else char
+            }
+        }
+    }
+    
+    return totalRemoved
+}
+
 class Day04Part1Test : BehaviorSpec({
     Given("a grid input") {
         When("parsing the grid") {
@@ -169,6 +202,42 @@ class Day04Part1Test : BehaviorSpec({
             Then("it should print the result") {
                 println("Result for Day 4 Part 1: $result")
                 result shouldBe 1344
+            }
+        }
+    }
+})
+
+class Day04Part2Test : BehaviorSpec({
+    Given("the example grid") {
+        val exampleInput = """
+            ..@@.@@@@.
+            @@@.@.@.@@
+            @@@@@.@.@@
+            @.@@@@..@.
+            @@.@@@@.@@
+            .@@@@@@@.@
+            .@.@.@.@@@
+            @.@@@.@@@@
+            .@@@@@@@@.
+            @.@.@@@.@.
+        """.trimIndent()
+        
+        When("solving part 2") {
+            val result = solveDay04Part2(exampleInput)
+            
+            Then("it should return 43") {
+                result shouldBe 43
+            }
+        }
+    }
+    
+    Given("the puzzle input") {
+        val input = readResource("day04Input.txt")!!
+        When("solving part 2") {
+            val result = solveDay04Part2(input)
+            Then("it should print the result") {
+                println("Result for Day 4 Part 2: $result")
+                result shouldBe 8112
             }
         }
     }
