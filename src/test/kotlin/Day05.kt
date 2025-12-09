@@ -1,6 +1,20 @@
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
+val exampleInput = """
+    3-5
+    10-14
+    16-20
+    12-18
+
+    1
+    5
+    8
+    11
+    17
+    32
+""".trimIndent()
+
 
 fun parseFreshRanges(input: String): List<LongRange> =
     input.substringBefore("\n\n").lines().map { line ->
@@ -20,24 +34,49 @@ fun countFreshIngredients(ranges: List<LongRange>, ids: List<Long>): Int =
 fun isFresh(id: Long, ranges: List<LongRange>): Boolean =
     ranges.any { range -> id in range }
 
+fun mergeRanges(ranges: List<LongRange>): List<LongRange> {
+    if (ranges.isEmpty()) return emptyList()
+    val sorted = ranges.sortedBy { it.first }
+    val merged = mutableListOf<LongRange>()
+    var current = sorted[0]
+    for (i in 1 until sorted.size) {
+        val next = sorted[i]
+        if (current.last >= next.first - 1) { // -1 because 3-5 and 6-8 are contiguous if we talk about integers, but here overlapping means sharing a number?
+            // "The ranges can also overlap; an ingredient ID is fresh if it is in any range."
+            // If 3-5 and 5-7, 5 is in both.
+            // If 3-5 and 6-7, they are distinct sets of integers.
+            // So strictly overlapping or adjacent?
+            // Example: 10-14 and 12-18. Overlap is 12,13,14.
+            // If we had 10-14 and 15-20, they don't overlap. 14 is fresh, 15 is fresh.
+            // But if we want total count, 10-14 (5 items) + 15-20 (6 items) = 11 items.
+            // Merging 10-14 and 15-20 into 10-20 would give 11 items.
+            // So we can merge if they touch or overlap.
+            // 14 and 15 are adjacent.
+            // current.last >= next.first - 1 ?
+            // If current is 3-5, next is 6-8. 5 >= 6-1 (5). True. Merge to 3-8?
+            // 3,4,5 and 6,7,8. Total 6. 3..8 is 6 items. Correct.
+            // So yes, merge if adjacent or overlapping.
+            current = current.first..maxOf(current.last, next.last)
+        } else {
+            merged.add(current)
+            current = next
+        }
+    }
+    merged.add(current)
+    return merged
+}
+
+fun countAllFreshIngredients(input: String): Long =
+    countAllFreshIngredients(parseFreshRanges(input))
+
+fun countAllFreshIngredients(ranges: List<LongRange>): Long =
+    mergeRanges(ranges).sumOf { it.last - it.first + 1 }
+
 class Day05Part1Test : BehaviorSpec({
     Given("Day 5 Part 1 Example") {
-        val input = """
-            3-5
-            10-14
-            16-20
-            12-18
-
-            1
-            5
-            8
-            11
-            17
-            32
-        """.trimIndent()
 
         When("parsing fresh ranges") {
-            val ranges = parseFreshRanges(input)
+            val ranges = parseFreshRanges(exampleInput)
             Then("it should return correct ranges") {
                 ranges shouldBe listOf(
                     3L..5L,
@@ -49,14 +88,14 @@ class Day05Part1Test : BehaviorSpec({
         }
 
         When("parsing available IDs") {
-            val ids = parseAvailableIds(input)
+            val ids = parseAvailableIds(exampleInput)
             Then("it should return correct IDs") {
                 ids shouldBe listOf(1L, 5L, 8L, 11L, 17L, 32L)
             }
         }
 
         When("counting fresh ingredients") {
-            val count = countFreshIngredients(input)
+            val count = countFreshIngredients(exampleInput)
             Then("it should return 3") {
                 count shouldBe 3
             }
@@ -69,6 +108,45 @@ class Day05Part1Test : BehaviorSpec({
             val count = countFreshIngredients(input)
             Then("it should return the correct count") {
                 count shouldBe 848
+            }
+        }
+    }
+})
+
+class Day05Part2Test : BehaviorSpec({
+    Given("Day 5 Part 2 Example") {
+        When("merging ranges") {
+            val ranges = parseFreshRanges(exampleInput)
+            val merged = mergeRanges(ranges)
+            Then("it should return merged ranges") {
+                merged shouldBe listOf(3L..5L, 10L..20L)
+                // Let's re-read example carefully.
+                // 10-14, 12-18, 16-20
+                // 10-14 overlaps 12-18 (12,13,14) -> 10-18
+                // 10-18 overlaps 16-20 (16,17,18) -> 10-20
+                // So merged should be 3-5, 10-20
+                // Let's adjust expectation based on manual trace or just implement logic and see.
+                // The example says: "The ingredient IDs that these ranges consider to be fresh are 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, and 20."
+                // 3,4,5 -> 3-5 (count 3)
+                // 10..20 -> 11 numbers (10,11,12,13,14,15,16,17,18,19,20)
+                // Total 14.
+            }
+        }
+
+        When("counting all fresh ingredients") {
+            val count = countAllFreshIngredients(exampleInput)
+            Then("it should return 14") {
+                count shouldBe 14
+            }
+        }
+    }
+
+    Given("Day 5 Part 2 Puzzle Input") {
+        val input = readResource("day05Input.txt")!!
+        When("counting all fresh ingredients") {
+            val count = countAllFreshIngredients(input)
+            Then("it should return the correct count") {
+                count shouldBe 334714395325710L
             }
         }
     }
