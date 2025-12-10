@@ -2,17 +2,6 @@
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-
-fun solveDay06Part1(input: List<String>): Long {
-    val problems = parseProblems(input)
-    return problems.sumOf { it.solve() }
-}
-
-fun solveDay06Part2(input: List<String>): Long {
-    val problems = parseProblems2(input)
-    return problems.sumOf { it.solve() }
-}
-
 data class Problem(val numbers: List<Long>, val operator: Char) {
     fun solve(): Long {
         return if (operator == '+') numbers.sum()
@@ -38,80 +27,24 @@ fun parseProblems(input: List<String>): List<Problem> {
     }
 }
 
-fun parseProblems2(input: List<String>): List<Problem> {
-    if (input.isEmpty()) return emptyList()
-    
-    val width = input.maxOf { it.length }
-    val numberLines = input.dropLast(1)
-    val operatorLine = input.last()
-    
-    val isSpaceColumn = BooleanArray(width) { col ->
-        input.all { line -> 
-           col >= line.length || line[col] == ' '
-        }
-    }
-    
-    val problems = mutableListOf<Problem>()
-    var currentEnd = width - 1
-    
-    // Scan right to left
-    for (col in (width - 1) downTo 0) {
-        if (isSpaceColumn[col]) {
-             if (currentEnd != -1 && col < currentEnd) {
-                 problems.add(extractProblem2(numberLines, operatorLine, col + 1, currentEnd))
-             }
-             currentEnd = col - 1
-        }
-    }
-     // Handle leftmost problem
-    if (currentEnd != -1) {
-        problems.add(extractProblem2(numberLines, operatorLine, 0, currentEnd))
-    }
-    
-    return problems
-}
 
-fun extractProblem2(numberLines: List<String>, operatorLine: String, startCol: Int, endCol: Int): Problem {
-    val numbers = mutableListOf<Long>()
-    
-    // For each column right to left
-    for (col in endCol downTo startCol) {
-        val sb = StringBuilder()
-        // Top to bottom
-        for (line in numberLines) {
-           if (col < line.length && line[col] != ' ') {
-               sb.append(line[col])
-           }
-        }
-        if (sb.isNotEmpty()) {
-            numbers.add(sb.toString().toLong())
-        }
-    }
-    
-    // Find operator in this range
-    var operator = ' '
-     for (col in startCol..endCol) {
-         if (col < operatorLine.length && operatorLine[col] != ' ') {
-             operator = operatorLine[col]
-             break
-         }
-     }
-    
-    return Problem(numbers, operator)
-}
-
-
-class Day06Part1Test : BehaviorSpec({
-    Given("day 6 part 1 example") {
-        val exampleInput = """
+val examplInputDay06 = """
             123 328  51 64 
              45 64  387 23 
               6 98  215 314
             *   +   *   +  
         """.trimIndent().lines()
 
+
+fun solveDay06Part1(input: List<String>): Long {
+    val problems = parseProblems(input)
+    return problems.sumOf { it.solve() }
+}
+
+class Day06Part1Test : BehaviorSpec({
+    Given("day 6 part 1 example") {
         When("parsing the problems") {
-            val problems = parseProblems(exampleInput)
+            val problems = parseProblems(examplInputDay06)
             Then("it should parse 4 problems correctly") {
                 problems shouldBe listOf(
                     Problem(listOf(123, 45, 6), '*'),
@@ -123,23 +56,96 @@ class Day06Part1Test : BehaviorSpec({
         }
 
         When("calculating grand total") {
-            val result = solveDay06Part1(exampleInput)
+            val result = solveDay06Part1(examplInputDay06)
             Then("result should be 4277556") {
                 result shouldBe 4277556
             }
         }
+    }
+
+    Given("puzzle input") {
+        val input = readResource("day06Input.txt")!!.trim().lines()
+        When("calculating grand total") {
+            val result = solveDay06Part1(input)
+            Then("result should be correct") {
+                result shouldBe 4722948564882L
+            }
         }
+    }
+})
 
+fun parseProblems2(input: List<String>): List<Problem> {
+    if (input.isEmpty()) return emptyList()
+
+    val width = input.maxOf { it.length }
+    val numberLines = input.dropLast(1)
+    val operatorLine = input.last()
+
+    val isSpaceColumn = BooleanArray(width) { col ->
+        input.all { line ->
+            col >= line.length || line[col] == ' '
+        }
+    }
+
+    val problems = mutableListOf<Problem>()
+    var currentEnd = width - 1
+
+    // Scan right to left
+    for (col in (width - 1) downTo 0) {
+        if (isSpaceColumn[col]) {
+            if (currentEnd != -1 && col < currentEnd) {
+                problems.add(extractProblem2(numberLines, operatorLine, col + 1, currentEnd))
+            }
+            currentEnd = col - 1
+        }
+    }
+    // Handle leftmost problem
+    if (currentEnd != -1) {
+        problems.add(extractProblem2(numberLines, operatorLine, 0, currentEnd))
+    }
+
+    return problems
+}
+
+fun extractProblem2(numberLines: List<String>, operatorLine: String, startCol: Int, endCol: Int): Problem {
+    val numbers = mutableListOf<Long>()
+
+    // For each column right to left
+    for (col in endCol downTo startCol) {
+        val sb = StringBuilder()
+        // Top to bottom
+        for (line in numberLines) {
+            if (col < line.length && line[col] != ' ') {
+                sb.append(line[col])
+            }
+        }
+        if (sb.isNotEmpty()) {
+            numbers.add(sb.toString().toLong())
+        }
+    }
+
+    // Find operator in this range
+    var operator = ' '
+    for (col in startCol..endCol) {
+        if (col < operatorLine.length && operatorLine[col] != ' ') {
+            operator = operatorLine[col]
+            break
+        }
+    }
+
+    return Problem(numbers, operator)
+}
+
+fun solveDay06Part2(input: List<String>): Long {
+    val problems = parseProblems2(input)
+    return problems.sumOf { it.solve() }
+}
+
+
+class Day06Part2Test : BehaviorSpec({
     Given("day 6 part 2 example") {
-         val exampleInput = """
-            123 328  51 64 
-             45 64  387 23 
-              6 98  215 314
-            *   +   *   +  
-        """.trimIndent().lines()
-
         When("parsing part 2 problems") {
-            val problems = parseProblems2(exampleInput)
+            val problems = parseProblems2(examplInputDay06)
             Then("it should parse problems correctly right-to-left") {
                  // Rightmost: 4 + 431 + 623
                  problems[0] shouldBe Problem(listOf(4, 431, 623), '+')
@@ -153,7 +159,7 @@ class Day06Part1Test : BehaviorSpec({
         }
         
         When("calculating grand total for part 2") {
-            val result = solveDay06Part2(exampleInput)
+            val result = solveDay06Part2(examplInputDay06)
             Then("result should be 3263827") {
                 result shouldBe 3263827
             }
@@ -162,13 +168,6 @@ class Day06Part1Test : BehaviorSpec({
 
     Given("puzzle input") {
         val input = readResource("day06Input.txt")!!.trim().lines()
-        When("calculating grand total") {
-            val result = solveDay06Part1(input)
-            Then("result should be correct") {
-                result shouldBe 4722948564882L
-            }
-        }
-
         When("calculating grand total for part 2") {
             val result = solveDay06Part2(input)
             Then("result should be correct for part 2") {
