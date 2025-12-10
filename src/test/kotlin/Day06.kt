@@ -81,8 +81,8 @@ fun parseProblems2(input: List<String>): List<Problem> {
     val numberLines = input.dropLast(1)
     val operatorLine = input.last()
 
-    val isSpaceColumn = BooleanArray(width) { col ->
-        input.all { line ->
+    fun isSpaceColumn(col: Int): Boolean {
+        return input.all { line ->
             col >= line.length || line[col] == ' '
         }
     }
@@ -92,7 +92,7 @@ fun parseProblems2(input: List<String>): List<Problem> {
 
     // Scan right to left
     for (col in (width - 1) downTo 0) {
-        if (isSpaceColumn[col]) {
+        if (isSpaceColumn(col)) {
             if (currentEnd != -1 && col < currentEnd) {
                 problems.add(extractProblem2(numberLines, operatorLine, col + 1, currentEnd))
             }
@@ -108,31 +108,21 @@ fun parseProblems2(input: List<String>): List<Problem> {
 }
 
 fun extractProblem2(numberLines: List<String>, operatorLine: String, startCol: Int, endCol: Int): Problem {
-    val numbers = mutableListOf<Long>()
-
-    // For each column right to left
-    for (col in endCol downTo startCol) {
-        val sb = StringBuilder()
-        // Top to bottom
-        for (line in numberLines) {
-            if (col < line.length && line[col] != ' ') {
-                sb.append(line[col])
-            }
-        }
-        if (sb.isNotEmpty()) {
-            numbers.add(sb.toString().toLong())
+    val charMatrix = numberLines.map { line ->
+        (startCol..endCol).map { col ->
+            if (col < line.length) line[col] else ' '
         }
     }
+
+    val numbers = charMatrix.transpose()
+        .reversed()
+        .map { chars -> chars.filter { it != ' ' }.joinToString("") }
+        .filter { it.isNotEmpty() }
+        .map { it.toLong() }
 
     // Find operator in this range
-    var operator = ' '
-    for (col in startCol..endCol) {
-        if (col < operatorLine.length && operatorLine[col] != ' ') {
-            operator = operatorLine[col]
-            break
-        }
-    }
-
+    val operator = operatorLine.drop(startCol).take(endCol - startCol + 1).find { it != ' ' } ?: ' '
+    
     return Problem(numbers, operator)
 }
 
