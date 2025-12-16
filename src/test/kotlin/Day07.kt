@@ -10,33 +10,28 @@ class Day07 {
         val width = input[0].length
         val outputGrid = input.map { it.toCharArray() }.toTypedArray()
         
-        var startR = -1
-        var startC = -1
-        for (r in 0 until height) {
-            for (c in 0 until width) {
-                if (input[r][c] == 'S') {
-                    startR = r
-                    startC = c
-                    break
-                }
-            }
+        fun findStart(): Coord2? = input.withIndex().firstNotNullOfOrNull { (r, row) ->
+            val c = row.indexOf('S')
+            if (c != -1) Coord2(c, r) else null
         }
-        
-        if (startR == -1) return Result(input, 0)
+
+        val start = findStart() ?: return Result(input, 0)
 
         // Queue holds the position of the beam head.
-        val queue = ArrayDeque<Pair<Int, Int>>()
-        queue.add(startR to startC)
+        val queue = ArrayDeque<Coord2>()
+        queue.add(start)
         
         // Visited set for BEAM HEAD POSITIONS to handle merges.
-        val visited = mutableSetOf<Pair<Int, Int>>()
-        visited.add(startR to startC)
+        val visited = mutableSetOf<Coord2>()
+        visited.add(start)
 
         // Set to track unique splitters hit (by location)
-        val hitSplitters = mutableSetOf<Pair<Int, Int>>()
+        val hitSplitters = mutableSetOf<Coord2>()
 
         while (queue.isNotEmpty()) {
-            val (r, c) = queue.removeFirst()
+            val current = queue.removeFirst()
+            val r = current.y
+            val c = current.x
             
             // Beam at (r,c) tries to move DOWN
             val nextR = r + 1
@@ -46,7 +41,7 @@ class Day07 {
             
             if (targetChar == '^') {
                 // Hit a splitter
-                hitSplitters.add(nextR to c)
+                hitSplitters.add(Coord2(c, nextR))
                 
                 // Spawn left
                 val leftC = c - 1
@@ -54,8 +49,9 @@ class Day07 {
                     if (outputGrid[nextR][leftC] == '.') {
                         outputGrid[nextR][leftC] = '|'
                     }
-                    if (visited.add(nextR to leftC)) {
-                        queue.add(nextR to leftC)
+                    val leftPos = Coord2(leftC, nextR)
+                    if (visited.add(leftPos)) {
+                        queue.add(leftPos)
                     }
                 }
                 
@@ -65,8 +61,9 @@ class Day07 {
                     if (outputGrid[nextR][rightC] == '.') {
                         outputGrid[nextR][rightC] = '|'
                     }
-                    if (visited.add(nextR to rightC)) {
-                        queue.add(nextR to rightC)
+                    val rightPos = Coord2(rightC, nextR)
+                    if (visited.add(rightPos)) {
+                        queue.add(rightPos)
                     }
                 }
             } else {
@@ -77,8 +74,9 @@ class Day07 {
                     }
                 }
                 // Valid move (pass through)
-                 if (visited.add(nextR to c)) {
-                    queue.add(nextR to c)
+                val nextPos = Coord2(c, nextR)
+                 if (visited.add(nextPos)) {
+                    queue.add(nextPos)
                 }
             }
         }
