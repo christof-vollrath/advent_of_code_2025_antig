@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 class Day07 {
     data class Result(val map: List<String>, val splits: Int)
 
-    fun solve(input: List<String>): Result {
+    fun simulateTachyonBeam(input: List<String>): Result {
         if (input.isEmpty()) return Result(emptyList(), 0)
         val height = input.size
         val width = input[0].length
@@ -97,10 +97,47 @@ class Day07Part1Test : BehaviorSpec({
         |.|.|.|.|.|||.|
     """.trimIndent().lines()
 
-    Given("Day 7 Part 1") {
-        When("example input is provided") {
-            val result = Day07().solve(exampleInput)
-            
+    Given("Day 7 Part 1 input") {
+
+        When("simulating tachyon beam for the start of example") {
+            val result = Day07().simulateTachyonBeam(exampleInput.take(2))
+
+            Then("it produces the expected map with no splits") {
+                result.map shouldBe expectedOutput.take(2)
+            }
+
+            Then("it counts correct number of splits") {
+                result.splits shouldBe 0
+            }
+        }
+
+        When("simulating tachyon beam for one split") {
+            val result = Day07().simulateTachyonBeam(exampleInput.take(4))
+
+            Then("it produces the expected map with no splits") {
+                result.map shouldBe expectedOutput.take(4)
+            }
+
+            Then("it counts correct number of splits") {
+                result.splits shouldBe 1
+            }
+        }
+
+        When("simulating tachyon beam when beams are merged") {
+            val result = Day07().simulateTachyonBeam(exampleInput.take(8))
+
+            Then("it produces the expected map with no splits") {
+                result.map shouldBe expectedOutput.take(8)
+            }
+
+            Then("it counts correct number of splits") {
+                result.splits shouldBe 6
+            }
+        }
+
+        When("simulating tachyon beam for the example") {
+            val result = Day07().simulateTachyonBeam(exampleInput)
+
             Then("it produces the expected map with beams") {
                 result.map shouldBe expectedOutput
             }
@@ -111,7 +148,7 @@ class Day07Part1Test : BehaviorSpec({
         }
         When("puzzle input is provided") {
             val input = readResource("day07Input.txt")!!.lines()
-            val result = Day07().solve(input)
+            val result = Day07().simulateTachyonBeam(input)
 
             Then("it counts splits") {
                 println("Splits in puzzle input: ${result.splits}")
