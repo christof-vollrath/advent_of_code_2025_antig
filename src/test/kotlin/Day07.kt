@@ -61,36 +61,33 @@ fun countTimelines(input: List<String>): Long {
     val height = input.size
     val width = input[0].length
 
-    fun findStart(): Coord2? = input.withIndex().firstNotNullOfOrNull { (r, row) ->
+    val start = input.withIndex().firstNotNullOfOrNull { (r, row) ->
         val c = row.indexOf('S')
         if (c != -1) Coord2(c, r) else null
-    }
+    } ?: return 1L
 
-    val start = findStart() ?: return 1L
-    val memo = mutableMapOf<Coord2, Long>()
+    var currentWays = LongArray(width)
+    currentWays[start.x] = 1L
 
-    fun calculate(curr: Coord2): Long {
-        if (curr.y == height - 1) return 1L
-        if (curr in memo) return memo[curr]!!
+    for (row in start.y until height - 1) {
+        val nextRowWays = LongArray(width)
+        val nextR = row + 1
+        for (col in 0 until width) {
+            val count = currentWays[col]
+            if (count == 0L) continue
 
-        val nextR = curr.y + 1
-        val c = curr.x
-        val targetChar = input[nextR][c]
-
-        val result = if (targetChar == '^') {
-            var total = 0L
-            if (c > 0) total += calculate(Coord2(c - 1, nextR))
-            if (c < width - 1) total += calculate(Coord2(c + 1, nextR))
-            total
-        } else {
-            calculate(Coord2(c, nextR))
+            val charBelow = input[nextR][col]
+            if (charBelow == '^') {
+                if (col > 0) nextRowWays[col - 1] += count
+                if (col < width - 1) nextRowWays[col + 1] += count
+            } else {
+                nextRowWays[col] += count
+            }
         }
-
-        memo[curr] = result
-        return result
+        currentWays = nextRowWays
     }
 
-    return calculate(start)
+    return currentWays.sum()
 }
 
 val exampleInputDay07: List<String> = """
