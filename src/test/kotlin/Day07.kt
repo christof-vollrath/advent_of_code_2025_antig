@@ -1,65 +1,99 @@
 import io.kotest.matchers.shouldBe
 import io.kotest.core.spec.style.BehaviorSpec
 
-class Day07 {
-    data class Result(val map: List<String>, val splits: Int)
+data class Result(val map: List<String>, val splits: Int)
 
-    fun simulateTachyonBeam(input: List<String>): Result {
-        if (input.isEmpty()) return Result(emptyList(), 0)
-        val height = input.size
-        val width = input[0].length
-        val outputGrid = input.map { it.toCharArray() }.toTypedArray()
-        
-        fun findStart(): Coord2? = input.withIndex().firstNotNullOfOrNull { (r, row) ->
-            val c = row.indexOf('S')
-            if (c != -1) Coord2(c, r) else null
-        }
+fun simulateTachyonBeam(input: List<String>): Result {
+    if (input.isEmpty()) return Result(emptyList(), 0)
+    val height = input.size
+    val width = input[0].length
+    val outputGrid = input.map { it.toCharArray() }.toTypedArray()
 
-        val start = findStart() ?: return Result(input, 0)
+    fun findStart(): Coord2? = input.withIndex().firstNotNullOfOrNull { (r, row) ->
+        val c = row.indexOf('S')
+        if (c != -1) Coord2(c, r) else null
+    }
 
-        // Active columns in the current row
-        var currentCols: Set<Int> = setOf(start.x)
-        var hitSplitters = 0
+    val start = findStart() ?: return Result(input, 0)
 
-        // Iterate through rows starting from finding S
-        for (r in start.y until height - 1) {
-            val nextR = r + 1
+    // Active columns in the current row
+    var currentCols: Set<Int> = setOf(start.x)
+    var hitSplitters = 0
 
-            val nextCols = sequence {
-                for (c in currentCols) {
-                    val targetChar = input[nextR][c]
+    // Iterate through rows starting from finding S
+    for (r in start.y until height - 1) {
+        val nextR = r + 1
 
-                    if (targetChar == '^') {
-                        hitSplitters++
-                        // Split: add left and right to next row
-                        val left = c - 1
-                        val right = c + 1
-                        if (left >= 0) yield(left)
-                        if (right < width) yield(right)
-                    } else {
-                        // Continue straight down
-                        yield(c)
-                    }
-                }
-            }.toSet()
+        val nextCols = sequence {
+            for (c in currentCols) {
+                val targetChar = input[nextR][c]
 
-            // Mark beams on the output grid for the next row
-            for (c in nextCols) {
-                if (outputGrid[nextR][c] == '.') {
-                    outputGrid[nextR][c] = '|'
+                if (targetChar == '^') {
+                    hitSplitters++
+                    // Split: add left and right to next row
+                    val left = c - 1
+                    val right = c + 1
+                    if (left >= 0) yield(left)
+                    if (right < width) yield(right)
+                } else {
+                    // Continue straight down
+                    yield(c)
                 }
             }
-            
-            if (nextCols.isEmpty()) break
-            currentCols = nextCols
+        }.toSet()
+
+        // Mark beams on the output grid for the next row
+        for (c in nextCols) {
+            if (outputGrid[nextR][c] == '.') {
+                outputGrid[nextR][c] = '|'
+            }
         }
-        
-        return Result(outputGrid.map { String(it) }, hitSplitters)
+
+        if (nextCols.isEmpty()) break
+        currentCols = nextCols
     }
+
+    return Result(outputGrid.map { String(it) }, hitSplitters)
 }
 
-class Day07Part1Test : BehaviorSpec({
-    val exampleInput = """
+fun countTimelines(input: List<String>): Long {
+    if (input.isEmpty()) return 0L
+    val height = input.size
+    val width = input[0].length
+
+    fun findStart(): Coord2? = input.withIndex().firstNotNullOfOrNull { (r, row) ->
+        val c = row.indexOf('S')
+        if (c != -1) Coord2(c, r) else null
+    }
+
+    val start = findStart() ?: return 1L
+    val memo = mutableMapOf<Coord2, Long>()
+
+    fun calculate(curr: Coord2): Long {
+        if (curr.y == height - 1) return 1L
+        if (curr in memo) return memo[curr]!!
+
+        val nextR = curr.y + 1
+        val c = curr.x
+        val targetChar = input[nextR][c]
+
+        val result = if (targetChar == '^') {
+            var total = 0L
+            if (c > 0) total += calculate(Coord2(c - 1, nextR))
+            if (c < width - 1) total += calculate(Coord2(c + 1, nextR))
+            total
+        } else {
+            calculate(Coord2(c, nextR))
+        }
+
+        memo[curr] = result
+        return result
+    }
+
+    return calculate(start)
+}
+
+val exampleInputDay07: List<String> = """
         .......S.......
         ...............
         .......^.......
@@ -77,6 +111,8 @@ class Day07Part1Test : BehaviorSpec({
         .^.^.^.^.^...^.
         ...............
     """.trimIndent().lines()
+
+class Day07Part1Test : BehaviorSpec({
 
     val expectedOutput = """
         .......S.......
@@ -100,7 +136,7 @@ class Day07Part1Test : BehaviorSpec({
     Given("Day 7 Part 1 input") {
 
         When("simulating tachyon beam for the start of example") {
-            val result = Day07().simulateTachyonBeam(exampleInput.take(2))
+            val result = simulateTachyonBeam(exampleInputDay07.take(2))
 
             Then("it produces the expected map with no splits") {
                 result.map shouldBe expectedOutput.take(2)
@@ -112,7 +148,7 @@ class Day07Part1Test : BehaviorSpec({
         }
 
         When("simulating tachyon beam for one split") {
-            val result = Day07().simulateTachyonBeam(exampleInput.take(4))
+            val result = simulateTachyonBeam(exampleInputDay07.take(4))
 
             Then("it produces the expected map with no splits") {
                 result.map shouldBe expectedOutput.take(4)
@@ -124,7 +160,7 @@ class Day07Part1Test : BehaviorSpec({
         }
 
         When("simulating tachyon beam when beams are merged") {
-            val result = Day07().simulateTachyonBeam(exampleInput.take(8))
+            val result = simulateTachyonBeam(exampleInputDay07.take(8))
 
             Then("it produces the expected map with no splits") {
                 result.map shouldBe expectedOutput.take(8)
@@ -136,7 +172,7 @@ class Day07Part1Test : BehaviorSpec({
         }
 
         When("simulating tachyon beam for the example") {
-            val result = Day07().simulateTachyonBeam(exampleInput)
+            val result = simulateTachyonBeam(exampleInputDay07)
 
             Then("it produces the expected map with beams") {
                 result.map shouldBe expectedOutput
@@ -148,11 +184,53 @@ class Day07Part1Test : BehaviorSpec({
         }
         When("puzzle input is provided") {
             val input = readResource("day07Input.txt")!!.lines()
-            val result = Day07().simulateTachyonBeam(input)
+            val result = simulateTachyonBeam(input)
 
             Then("it counts splits") {
                 println("Splits in puzzle input: ${result.splits}")
                 result.splits shouldBe 1656
+            }
+        }
+    }
+})
+
+class Day07Part2Test : BehaviorSpec({
+
+    Given("Day 7 Part 2 input") {
+        When("simulating timelines for the start of example") {
+            val timelines = countTimelines(exampleInputDay07.take(2))
+            Then("it should be 1") {
+                timelines shouldBe 1L
+            }
+        }
+
+        When("simulating timelines for one split") {
+            val timelines = countTimelines(exampleInputDay07.take(4))
+            Then("it should be 2") {
+                timelines shouldBe 2L
+            }
+        }
+
+        When("simulating timelines for merged beams section") {
+            val timelines = countTimelines(exampleInputDay07.take(8))
+            Then("it should be 8") {
+                timelines shouldBe 8L
+            }
+        }
+
+        When("simulating timelines for the full example") {
+            val timelines = countTimelines(exampleInputDay07)
+            Then("it should be 40") {
+                timelines shouldBe 40L
+            }
+        }
+
+        When("puzzle input is provided") {
+            val input = readResource("day07Input.txt")!!.lines()
+            val timelines = countTimelines(input)
+
+            Then("it counts timelines") {
+                timelines shouldBe 76624086587804L
             }
         }
     }

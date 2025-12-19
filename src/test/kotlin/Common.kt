@@ -114,6 +114,14 @@ fun divisors(n: Int): Sequence<Int> = sequence {
     yieldAll(largerDivisors.reversed())
 }
 
+fun Int.pow(exponent: Int): Int {
+    var res = 1
+    repeat(exponent) {
+        res *= this
+    }
+    return res
+}
+
 data class Coord2(val x: Int, val y: Int) {
     infix fun manhattanDistance(other: Coord2): Int = abs(x - other.x) + abs(y - other.y)
     operator fun plus(direction: Coord2) = Coord2(x + direction.x, y + direction.y)
