@@ -177,8 +177,19 @@ data class Coord3(val x: Int, val y: Int, val z: Int) {
         this + neighborOffset
     }
 
+    infix fun euclideanDistance(other: Coord3): Double =
+        sqrt(
+            (x - other.x).toDouble().pow(2) +
+            (y - other.y).toDouble().pow(2) +
+            (z - other.z).toDouble().pow(2)
+        )
+
     companion object {
-        val neighborOffsets = listOf(Coord3(-1, 0, 0), Coord3(1, 0, 0), Coord3(0, -1, 0), Coord3(0, 0, 1), Coord3(0, 0, -1), Coord3(0, 0, 1))
+        val neighborOffsets = listOf(
+            Coord3(-1, 0, 0), Coord3(1, 0, 0),
+            Coord3(0, -1, 0), Coord3(0, 1, 0),
+            Coord3(0, 0, -1), Coord3(0, 0, 1)
+        )
         val neighbor26Offsets = (-1..1).flatMap { z ->
             (-1..1).flatMap { y ->
                 (-1..1).mapNotNull { x ->

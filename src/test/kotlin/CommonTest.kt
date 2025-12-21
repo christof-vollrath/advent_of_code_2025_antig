@@ -1,6 +1,8 @@
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.datatest.withData
+import kotlin.math.sqrt
+
 
 class CommonTest_readResource : StringSpec({
     "readResource should return content of existing resource" {
@@ -169,3 +171,26 @@ class CommonTest_divisors : StringSpec({
     }
 })
 
+
+class CommonTest_coord3 : StringSpec({
+    data class DistanceTestCase(
+        val name: String,
+        val c1: Coord3,
+        val c2: Coord3,
+        val expected: Double
+    )
+
+    withData(
+        nameFn = { it.name },
+        DistanceTestCase("zero distance", Coord3(0, 0, 0), Coord3(0, 0, 0), 0.0),
+        DistanceTestCase("x-axis", Coord3(0, 0, 0), Coord3(3, 0, 0), 3.0),
+        DistanceTestCase("y-axis", Coord3(0, 0, 0), Coord3(0, 4, 0), 4.0),
+        DistanceTestCase("z-axis", Coord3(0, 0, 0), Coord3(0, 0, 5), 5.0),
+        DistanceTestCase("diagonal", Coord3(0, 0, 0), Coord3(3, 4, 0), 5.0),
+        DistanceTestCase("3d diagonal", Coord3(0, 0, 0), Coord3(1, 2, 2), 3.0),
+        DistanceTestCase("origin to all ones", Coord3(0, 0, 0), Coord3(1, 1, 1), sqrt(3.0)),
+                DistanceTestCase("negative coords", Coord3(-1, -1, -1), Coord3(1, 1, 1), sqrt(12.0))
+    ) { testCase ->
+        (testCase.c1 euclideanDistance testCase.c2) shouldBe testCase.expected
+    }
+})
