@@ -194,3 +194,40 @@ class CommonTest_coord3 : StringSpec({
         (testCase.c1 euclideanDistance testCase.c2) shouldBe testCase.expected
     }
 })
+
+class CommonTest_combine : StringSpec({
+    data class CombineTestCase(
+        val name: String,
+        val input: List<List<Any>>,
+        val expected: List<List<Any>>
+    )
+
+    withData(
+        nameFn = { it.name },
+        CombineTestCase(
+            name = "empty input",
+            input = emptyList(),
+            expected = listOf(emptyList())
+        ),
+        CombineTestCase(
+            name = "single collection",
+            input = listOf(listOf(1, 2)),
+            expected = listOf(listOf(1), listOf(2))
+        ),
+        CombineTestCase(
+            name = "two collections",
+            input = listOf(listOf(1, 2), listOf("A", "B")),
+            expected = listOf(
+                listOf(1, "A"), listOf(1, "B"),
+                listOf(2, "A"), listOf(2, "B")
+            )
+        ),
+        CombineTestCase(
+            name = "collection with empty list",
+            input = listOf(listOf(1, 2), emptyList(), listOf(3)),
+            expected = emptyList()
+        )
+    ) { testCase ->
+        combine(testCase.input).toList() shouldBe testCase.expected
+    }
+})
