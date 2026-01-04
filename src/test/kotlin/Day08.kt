@@ -96,6 +96,7 @@ fun buildCircuitsUnionFind(coords: List<Coord3>, sortedDistances: List<CoordsWit
     return unionFind.getSizes() to lastConnection
 }
 
+/* The simple set based implementation is about 15% slower than union find */
 fun buildCircuitsSets(coords: List<Coord3>, sortedDistances: List<CoordsWithDistance>): Pair<List<Int>, Pair<Coord3, Coord3>?> {
     class Circuit(val boxes: MutableSet<Coord3> = mutableSetOf<Coord3>()) { // The wrapper object is needed so that circuits.remove works reliable based on identity not on equality
         val size: Int
