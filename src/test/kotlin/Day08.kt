@@ -96,39 +96,14 @@ fun buildCircuitsUnionFind(coords: List<Coord3>, sortedDistances: List<CoordsWit
     return unionFind.getSizes() to lastConnection
 }
 
-typealias Circuit = MutableSet<Coord3>
-
 fun buildCircuitsSets(coords: List<Coord3>, sortedDistances: List<CoordsWithDistance>): Pair<List<Int>, Pair<Coord3, Coord3>?> {
-    /*
-    val circuits = mutableSetOf<Circuit>()
-    val circuitMap = mutableMapOf<Coord3, Circuit>()
-    
-    // Initialize: Every box is its own circuit
-    coords.forEach { coord ->
-        val circuit = mutableSetOf(coord)
-        circuitMap[coord] = circuit
-        circuits.add(circuit)
+    class Circuit(val boxes: MutableSet<Coord3> = mutableSetOf<Coord3>()) { // The wrapper object is needed so that circuits.remove works reliable based on identity not on equality
+        val size: Int
+            get() = boxes.size
+        fun addAll(circuit2: Circuit)  { boxes.addAll(circuit2.boxes) }
+        fun add(coord: Coord3) { boxes.add(coord) }
+        fun forEach(function: (Coord3) -> Unit) { boxes.forEach { function(it) }}
     }
-
-    var recentConnection: Pair<Coord3, Coord3>? = null
-    for (connection in sortedDistances) {
-        val circuit1 = circuitMap[connection.coord1]!!
-        val circuit2 = circuitMap[connection.coord2]!!
-        
-        if (circuit1 !== circuit2) { // Merge
-            val (src, dest) = if (circuit1.size < circuit2.size) circuit1 to circuit2 else circuit2 to circuit1
-            dest.addAll(src)
-            src.forEach { coord -> circuitMap[coord] = dest }
-            circuits.remove(src)
-            recentConnection = connection.coord1 to connection.coord2
-            
-            if (circuits.size == 1) break
-        }
-    }
-    
-    return circuits.map { it.size } to recentConnection
-
-     */
     val circuits = mutableSetOf<Circuit>()
     val circuitMap = mutableMapOf<Coord3, Circuit>()
     var recentConnection: Pair<Coord3, Coord3>? = null
@@ -137,24 +112,18 @@ fun buildCircuitsSets(coords: List<Coord3>, sortedDistances: List<CoordsWithDist
         val circuit2 = circuitMap[connection.coord2]
 
         if (circuit1 != null && circuit2 != null && circuit1 !== circuit2) { // Merge
-            circuits.remove(circuit1) // Remove and add because of changing the circuit
-            circuits.remove(circuit2)
             val (src, dest) = if (circuit1.size < circuit2.size) circuit1 to circuit2 else circuit2 to circuit1
             dest.addAll(src)
             src.forEach { coord -> circuitMap[coord] = dest }
-            circuits.add(dest)
+            circuits.remove(src)
         } else if (circuit1 != null) {
-            circuits.remove(circuit1) // Remove and add because of changing the circuit
             circuit1.add(connection.coord2)
-            circuits.add(circuit1)
             circuitMap.put(connection.coord2, circuit1)
         } else if (circuit2 != null) {
-            circuits.remove(circuit2) // Remove and add because of changing the circuit
             circuit2.add(connection.coord1)
-            circuits.add(circuit2)
             circuitMap.put(connection.coord1, circuit2)
         } else {
-            val circuit = mutableSetOf(connection.coord1, connection.coord2)
+            val circuit = Circuit(mutableSetOf(connection.coord1, connection.coord2))
             circuits.add(circuit)
             circuitMap.put(connection.coord1, circuit)
             circuitMap.put(connection.coord2, circuit)
@@ -165,7 +134,7 @@ fun buildCircuitsSets(coords: List<Coord3>, sortedDistances: List<CoordsWithDist
     // Make sure that every box is in a circuit
     coords.forEach { coord ->
         if (coord !in circuitMap) {
-            circuits.add(mutableSetOf(coord))
+            circuits.add(Circuit(mutableSetOf(coord)))
         }
     }
     return circuits.map { it.size } to recentConnection
