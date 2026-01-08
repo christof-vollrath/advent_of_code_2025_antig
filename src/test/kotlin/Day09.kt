@@ -40,103 +40,129 @@ fun findLargestRectangle(coords: List<Coord2>): Long {
     return maxArea
 }
 
-fun findLargestRectanglePart2(coords: List<Coord2>): Long {
-    val xs = coords.map { it.x }.distinct().sorted()
-    val ys = coords.map { it.y }.distinct().sorted()
+/**
+ * Coordinate Compression:
+ * Maps sparse, large world coordinates to a dense, small grid.
+ * For N unique coordinates, we create a grid of size 2N-1 to represent:
+ * - The integer coordinates themselves (indices 0, 2, 4...)
+ * - The spaces/gaps between them (indices 1, 3, 5...)
+ */
+class CoordinateCompressor(coords: List<Int>) {
+    val values = coords.distinct().sorted()
+    private val valToIndex = values.withIndex().associate { it.value to it.index }
+    val size: Int get() = values.size
+    val gridW: Int get() = 2 * size - 1
+
+    fun map(v: Int): Int = valToIndex[v]!!
     
-    val xMap = xs.withIndex().associate { it.value to it.index }
-    val yMap = ys.withIndex().associate { it.value to it.index }
-    
-    val gridW = 2 * xs.size - 1
-    val gridH = 2 * ys.size - 1
-    val isGreen = Array(gridW) { BooleanArray(gridH) }
-    
-    val edges = coords.indices.map { i -> coords[i] to coords[(i + 1) % coords.size] }
+    /**
+     * Translates a grid index back to a world coordinate value.
+     * - Even indices (0, 2, 4...) map to actual tile coordinates.
+     * - Odd indices (1, 3, 5...) map to the midpoints between tiles.
+     * This is essential for ray casting, as we need to sample points 
+     * both ON tiles and IN THE GAPS between them.
+     */
+    fun getDouble(gridIndex: Int): Double =
+        if (gridIndex % 2 == 0) values[gridIndex / 2].toDouble()
+        else (values[gridIndex / 2] + values[gridIndex / 2 + 1]) / 2.0
+}
 
-    for (jj in 0 until gridH) {
-        val y = if (jj % 2 == 0) ys[jj / 2].toDouble() else (ys[jj / 2] + ys[jj / 2 + 1]) / 2.0
-        
-        // Horizontal edges that exactly match this y (if jj is even)
-        val horizontalRanges = if (jj % 2 == 0) {
-            val yInt = ys[jj / 2]
-            edges.filter { it.first.y == it.second.y && it.first.y == yInt }
-                 .map { kotlin.math.min(it.first.x, it.second.x)..kotlin.math.max(it.first.x, it.second.x) }
-        } else emptyList()
+/**
+ * 2D Prefix Sums (Summed-Area Table):
+ * Allows O(1) sum queries over any rectangular sub-grid.
+ * Used here to instantly check if a candidate rectangle contains any "bad" (outside) tiles.
+ */
+class SummedAreaTable(grid: Array<BooleanArray>) {
+    private val width = grid.size
+    private val height = if (width > 0) grid[0].size else 0
+    private val sumTable = Array(width + 1) { IntArray(height + 1) }
 
-        // Vertical edges that cross this y. 
-        // For ray casting at integer y, use the rule: min <= y < max.
-        // For ray casting at gap y (midpoint), min < y < max is the same.
-        val crossX = edges.filter { (v1, v2) ->
-            v1.x == v2.x && y >= kotlin.math.min(v1.y, v2.y).toDouble() && y < kotlin.math.max(v1.y, v2.y).toDouble()
-        }.map { it.first.x }.distinct().sorted()
-
-        for (ii in 0 until gridW) {
-            val x = if (ii % 2 == 0) xs[ii / 2].toDouble() else (xs[ii / 2] + xs[ii / 2 + 1]) / 2.0
-            
-            // 1. Is it on a boundary?
-            val onBoundary = if (ii % 2 == 0) {
-                // Point (x, y)
-                val xInt = xs[ii / 2]
-
-                val onVertical = edges.any { it.first.x == it.second.x && it.first.x == xInt && y >= kotlin.math.min(it.first.y, it.second.y) && y <= kotlin.math.max(it.first.y, it.second.y) }
-                val onHorizontal = if (jj % 2 == 0) horizontalRanges.any { xInt in it } else false
-                onVertical || onHorizontal
-            } else {
-                // Segment (xGap, y)
-                if (jj % 2 == 0) {
-                    val x1 = xs[ii / 2]
-                    val x2 = xs[ii / 2 + 1]
-                    horizontalRanges.any { x1 >= it.first && x2 <= it.last }
-                } else {
-                    // Gap x, gap y. Never on boundary.
-                    false
-                }
-            }
-
-            if (onBoundary) {
-                isGreen[ii][jj] = true
-            } else {
-                // 2. Use ray casting rule: count crossings where crossX > x
-                // Note: we only hit vertical edges that cross y according to the min <= y < max rule.
-                val crossings = crossX.count { it > x }
-                isGreen[ii][jj] = crossings % 2 != 0
+    init {
+        for (i in 0 until width) {
+            for (j in 0 until height) {
+                val value = if (grid[i][j]) 0 else 1
+                sumTable[i + 1][j + 1] = value + sumTable[i][j + 1] + sumTable[i + 1][j] - sumTable[i][j]
             }
         }
     }
 
-    val notGreenSum = Array(gridW + 1) { IntArray(gridH + 1) }
-    for (i in 0 until gridW) {
-        for (j in 0 until gridH) {
-            val valNotGreen = if (isGreen[i][j]) 0 else 1
-            notGreenSum[i + 1][j + 1] = valNotGreen + notGreenSum[i][j + 1] + notGreenSum[i + 1][j] - notGreenSum[i][j]
-        }
-    }
-
-    fun isRectangleAllGreen(ii1: Int, jj1: Int, ii2: Int, jj2: Int): Boolean {
-        val sum = notGreenSum[ii2 + 1][jj2 + 1] - notGreenSum[ii1][jj2 + 1] - notGreenSum[ii2 + 1][jj1] + notGreenSum[ii1][jj1]
+    fun isAllGreen(xRange: IntRange, yRange: IntRange): Boolean {
+        val sum = sumTable[xRange.last + 1][yRange.last + 1] - 
+                  sumTable[xRange.first][yRange.last + 1] - 
+                  sumTable[xRange.last + 1][yRange.first] + 
+                  sumTable[xRange.first][yRange.first]
         return sum == 0
     }
+}
 
+class RectilinearPolygonGrid(coords: List<Coord2>) {
+    private val compressX = CoordinateCompressor(coords.map { it.x })
+    private val compressY = CoordinateCompressor(coords.map { it.y })
+    private val sat: SummedAreaTable
+
+    init {
+        val grid = Array(compressX.gridW) { BooleanArray(compressY.gridW) }
+        val edges = coords.indices.map { i -> coords[i] to coords[(i + 1) % coords.size] }
+
+        for (jj in 0 until compressY.gridW) {
+            val y = compressY.getDouble(jj)
+            
+            // Discrete Ray Casting:
+            // For each row (jj), we find vertical edges that cross the y-coordinate.
+            // Using the rule 'min <= y < max' ensures vertices are crossed exactly once.
+            val horizontalRanges = if (jj % 2 == 0) {
+                val yInt = compressY.values[jj / 2]
+                edges.filter { it.first.y == it.second.y && it.first.y == yInt }
+                     .map { kotlin.math.min(it.first.x, it.second.x)..kotlin.math.max(it.first.x, it.second.x) }
+            } else emptyList()
+
+            val crossX = edges.filter { (v1, v2) ->
+                v1.x == v2.x && y >= kotlin.math.min(v1.y, v2.y).toDouble() && y < kotlin.math.max(v1.y, v2.y).toDouble()
+            }.map { it.first.x }.distinct().sorted()
+
+            for (ii in 0 until compressX.gridW) {
+                val x = compressX.getDouble(ii)
+                val onBoundary = if (ii % 2 == 0) {
+                    val xInt = compressX.values[ii / 2]
+                    val onVertical = edges.any { it.first.x == it.second.x && it.first.x == xInt && y >= kotlin.math.min(it.first.y, it.second.y) && y <= kotlin.math.max(it.first.y, it.second.y) }
+                    val onHorizontal = if (jj % 2 == 0) horizontalRanges.any { xInt in it } else false
+                    onVertical || onHorizontal
+                } else {
+                    if (jj % 2 == 0) {
+                        val x1 = compressX.values[ii / 2]
+                        val x2 = compressX.values[ii / 2 + 1]
+                        horizontalRanges.any { x1 >= it.first && x2 <= it.last }
+                    } else false
+                }
+
+                if (onBoundary) {
+                    grid[ii][jj] = true
+                } else {
+                    // Jordan Curve Theorem: A point is inside if a ray from it crosses the boundary an odd number of times.
+                    grid[ii][jj] = crossX.count { it > x } % 2 != 0
+                }
+            }
+        }
+        sat = SummedAreaTable(grid)
+    }
+
+    fun containsRectangle(c1: Coord2, c2: Coord2): Boolean {
+        val xIndices = (2 * compressX.map(kotlin.math.min(c1.x, c2.x)) .. 2 * compressX.map(kotlin.math.max(c1.x, c2.x)))
+        val yIndices = (2 * compressY.map(kotlin.math.min(c1.y, c2.y)) .. 2 * compressY.map(kotlin.math.max(c1.y, c2.y)))
+        return sat.isAllGreen(xIndices, yIndices)
+    }
+}
+
+fun findLargestRectanglePart2(coords: List<Coord2>): Long {
+    val grid = RectilinearPolygonGrid(coords)
     var maxArea = 0L
     for (i in coords.indices) {
         for (j in i + 1 until coords.size) {
             val c1 = coords[i]
             val c2 = coords[j]
-            val xMin = kotlin.math.min(c1.x, c2.x)
-            val xMax = kotlin.math.max(c1.x, c2.x)
-            val yMin = kotlin.math.min(c1.y, c2.y)
-            val yMax = kotlin.math.max(c1.y, c2.y)
-            
-            val area = (xMax - xMin + 1).toLong() * (yMax - yMin + 1)
-            if (area > maxArea) {
-                val ii1 = 2 * xMap[xMin]!!
-                val ii2 = 2 * xMap[xMax]!!
-                val jj1 = 2 * yMap[yMin]!!
-                val jj2 = 2 * yMap[yMax]!!
-                
-                if (isRectangleAllGreen(ii1, jj1, ii2, jj2)) {
-                    maxArea = area
-                }
+            val area = (abs(c1.x - c2.x) + 1).toLong() * (abs(c1.y - c2.y) + 1)
+            if (area > maxArea && grid.containsRectangle(c1, c2)) {
+                maxArea = area
             }
         }
     }
