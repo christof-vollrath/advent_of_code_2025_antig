@@ -46,6 +46,47 @@ class Day10Part1Test : BehaviorSpec({
     }
 })
 
+class Day10Part2Test : BehaviorSpec({
+    val examples = exampleInputDay10.split("\n")
+
+    Given("the Day 10 example machines for Part 2") {
+        val examplesAndResults = listOf(
+            examples[0] to 10,
+            examples[1] to 12,
+            examples[2] to 11
+        )
+        examplesAndResults.forEachIndexed { index, (input, expected) ->
+            When("calculating for machine ${index + 1}") {
+                val machine = parseMachine(input)
+                val presses = solveMinPressesPart2(machine)
+                Then("it should return $expected") {
+                    presses shouldBe expected
+                }
+            }
+        }
+        When("calculating the sum for all machines") {
+            val results = examples.map { solveMinPressesPart2(parseMachine(it)) ?: 0 }
+            Then("sum should be 33") {
+                results.sum() shouldBe 33
+            }
+        }
+    }
+
+    Given("puzzle input for Part 2") {
+        val input = readResource("day10Input.txt")?.split("\n")?.filter { it.isNotBlank() }
+        if (input != null) {
+            When("calculating the total presses for all machines") {
+                val results = input.map { solveMinPressesPart2(parseMachine(it)) ?: 0 }
+                val sum = results.sum()
+                Then("sum should be right") {
+                    println("Day 10 Part 2 Result: $sum")
+                sum shouldBe 18960
+                }
+            }
+        }
+    }
+})
+
 data class Machine(
     val target: BitSet,
     val numLights: Int,
@@ -77,6 +118,21 @@ fun parseMachine(input: String): Machine {
     return Machine(target, targetStr.length, buttons, requirements)
 }
 
+/**
+ * Solves Part 1: Minimum button presses to match indicator light pattern.
+ * 
+ * DESIGN DECISION: Gaussian Elimination over GF(2)
+ * Toggling lights is equivalent to addition in the finite field GF(2) (XOR logic).
+ * A machine configuration can be represented as a system of linear equations: Ax = b
+ * where A is the matrix of button effects, x is the vector of button presses (0 or 1), 
+ * and b is the target light configuration.
+ * 
+ * We use Gaussian Elimination to reach Reduced Row Echelon Form (RREF). 
+ * This approach is chosen because:
+ * 1. It handles redundancy: If buttons are linearly dependent, RREF identifies the basis.
+ * 2. It identifies free variables: If the system is underdetermined, we can search 
+ *    the small space of free variables to find the solution with the minimum Hamming weight (fewest presses).
+ */
 fun solveMinPresses(machine: Machine): Int? {
     val n = machine.numLights
     val m = machine.buttons.size
@@ -167,5 +223,105 @@ fun solveMinPresses(machine: Machine): Int? {
     }
 
     return minWeight
+}
+
+/**
+ * Solves Part 2: Minimum button presses to match exact joltage levels.
+ * 
+ * DESIGN DECISION: Gaussian Elimination + Targeted Search
+ * Unlike Part 1, Part 2 involves standard integer addition (joltage increases by 1).
+ * The problem is a linear system Ax = b over non-negative integers.
+ * 
+ * Why Gaussian Elimination instead of BFS?
+ * - BFS (Breadth-First Search) is ideal for finding the shortest path in state-space.
+ * - However, with joltage targets reaching ~200 across 8 counters, the state space 
+ *   ($200^8$) is too large for memory (leads to OutOfMemoryError).
+ * - Linear Algebra (RREF) reduces the problem from searching states to searching 
+ *   the relationships between buttons. 
+ * - Since the number of buttons and counters is small, RREF simplifies the system 
+ *   to a few free variables, even when target values are large.
+ */
+fun solveMinPressesPart2(machine: Machine): Int? {
+    val b = machine.requirements.map { it.toDouble() }.toDoubleArray()
+    if (b.isEmpty()) return 0
+    val n = b.size
+    val m = machine.buttons.size
+    
+    // Augmented matrix
+    val matrix = Array(n) { DoubleArray(m + 1) }
+    for (i in 0 until n) {
+        for (j in 0 until m) {
+            if (machine.buttons[j].get(i)) matrix[i][j] = 1.0
+        }
+        matrix[i][m] = b[i]
+    }
+    
+    // RREF
+    var pivotCount = 0
+    val pivotCols = IntArray(n) { -1 }
+    for (j in 0 until m) {
+        if (pivotCount >= n) break
+        var sel = pivotCount
+        while (sel < n && Math.abs(matrix[sel][j]) < 1e-9) sel++
+        if (sel == n) continue
+        
+        val temp = matrix[sel]
+        matrix[sel] = matrix[pivotCount]
+        matrix[pivotCount] = temp
+        
+        val div = matrix[pivotCount][j]
+        for (k in j..m) matrix[pivotCount][k] /= div
+        
+        for (i in 0 until n) {
+            if (i != pivotCount) {
+                val factor = matrix[i][j]
+                for (k in j..m) matrix[i][k] -= factor * matrix[pivotCount][k]
+            }
+        }
+        pivotCols[pivotCount] = j
+        pivotCount++
+    }
+    
+    // Consistency check
+    for (i in pivotCount until n) {
+        if (Math.abs(matrix[i][m]) > 1e-9) return null
+    }
+    
+    val isPivot = BooleanArray(m)
+    for (i in 0 until pivotCount) isPivot[pivotCols[i]] = true
+    val freeCols = (0 until m).filter { !isPivot[it] }
+    
+    var minSum = Int.MAX_VALUE
+    
+    fun search(freeIdx: Int, freeVals: IntArray) {
+        if (freeIdx == freeCols.size) {
+            // Check pivot variables
+            var currentSum = freeVals.sum()
+            for (i in 0 until pivotCount) {
+                var pivotVal = matrix[i][m]
+                for (fi in freeCols.indices) {
+                    pivotVal -= matrix[i][freeCols[fi]] * freeVals[fi]
+                }
+                val rounded = Math.round(pivotVal).toInt()
+                if (Math.abs(rounded - pivotVal) > 1e-6 || rounded < 0) return
+                currentSum += rounded
+            }
+            if (currentSum < minSum) minSum = currentSum
+            return
+        }
+        
+        // Brute force range for free variable.
+        // Usually, 0..max(b) is safe.
+        val maxB = b.maxOrNull()?.toInt() ?: 0
+        for (v in 0..maxB) {
+            freeVals[freeIdx] = v
+            search(freeIdx + 1, freeVals)
+        }
+    }
+    
+    
+    search(0, IntArray(freeCols.size))
+    
+    return if (minSum == Int.MAX_VALUE) null else minSum
 }
 
