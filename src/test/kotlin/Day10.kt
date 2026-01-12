@@ -46,26 +46,35 @@ class Day10Part1Test : BehaviorSpec({
     }
 })
 
-data class Machine(val target: BitSet, val numLights: Int, val buttons: List<BitSet>)
+data class Machine(
+    val target: BitSet,
+    val numLights: Int,
+    val buttons: List<BitSet>,
+    val requirements: List<Int>
+)
 
 fun parseMachine(input: String): Machine {
-    val diagramPart = input.substringAfter("[").substringBefore("]")
-    val numLights = diagramPart.length
-    val target = BitSet(numLights)
-    diagramPart.forEachIndexed { index, c ->
-        if (c == '#') target.set(index)
+    val targetStr = input.substringAfter("[").substringBefore("]")
+    val target = BitSet(targetStr.length).apply {
+        targetStr.forEachIndexed { i, c -> if (c == '#') set(i) }
     }
 
-    val buttonParts = input.split(" (").drop(1).map { it.substringBefore(")") }
-    val buttons = buttonParts.map { part ->
-        val bs = BitSet(numLights)
-        if (part.isNotBlank()) {
-            part.split(",").map { it.trim().toInt() }.forEach { bs.set(it) }
-        }
-        bs
-    }
+    val buttons = Regex("""\((.*?)\)""").findAll(input)
+        .map { match ->
+            BitSet(targetStr.length).apply {
+                match.groupValues[1].split(",")
+                    .filter { it.isNotBlank() }
+                    .forEach { set(it.trim().toInt()) }
+            }
+        }.toList()
 
-    return Machine(target, numLights, buttons)
+    val requirements = Regex("""\{(.*?)}""").find(input)
+        ?.groupValues?.get(1)
+        ?.split(",")
+        ?.map { it.trim().toInt() }
+        ?: emptyList()
+
+    return Machine(target, targetStr.length, buttons, requirements)
 }
 
 fun solveMinPresses(machine: Machine): Int? {
@@ -130,31 +139,28 @@ fun solveMinPresses(machine: Machine): Int? {
         return count
     }
 
+    // Bitwise optimization for exhaustive search
+    val pivotTargets = pivotCols.indices.map { i -> matrix[i].get(m) }
+    val dependencyMasks = pivotCols.indices.map { i ->
+        var mask = 0L
+        freeCols.forEachIndexed { fi, fCol ->
+            if (matrix[i].get(fCol)) mask = mask or (1L shl fi)
+        }
+        mask
+    }
+
     var minWeight = Int.MAX_VALUE
     val numCombinations = 1L shl freeCols.size
     for (bits in 0 until numCombinations) {
-        var currentWeight = 0
-        val x = BooleanArray(m)
-        // Set free variables
-        for (i in freeCols.indices) {
-            if ((bits shr i) and 1L == 1L) {
-                x[freeCols[i]] = true
-                currentWeight++
-            }
-        }
-        // Determine pivot variables
+        var currentWeight = java.lang.Long.bitCount(bits)
+        if (currentWeight >= minWeight) continue
+
         for (i in pivotCols.indices) {
-            val pCol = pivotCols[i]
-            var valP = matrix[i].get(m)
-            for (fIdx in freeCols.indices) {
-                val fCol = freeCols[fIdx]
-                if (matrix[i].get(fCol) && x[fCol]) {
-                    valP = valP xor true
-                }
-            }
-            x[pCol] = valP
+            val valP = pivotTargets[i] xor (java.lang.Long.bitCount(bits and dependencyMasks[i]) % 2 == 1)
             if (valP) currentWeight++
+            if (currentWeight >= minWeight) break
         }
+        
         if (currentWeight < minWeight) {
             minWeight = currentWeight
         }
