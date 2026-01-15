@@ -6,6 +6,12 @@ import kotlin.math.min
  * Ford-Johnson Algorithm (Merge-Insertion Sort)
  *
  * Designed to minimize comparisons.
+ *
+ * My prompts to Antigravity/Gemini3Flash
+ *
+ * Can you explain to me the Ford-Johnson-algoirthm for sorting?
+ *
+ * Please implement this Alogrithm. Write it in a file called Sort.kt under test and include some tests.
  */
 
 private data class Node<T : Comparable<T>>(val winner: T, val loser: T) : Comparable<Node<T>> {
