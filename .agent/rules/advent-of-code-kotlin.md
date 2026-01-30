@@ -17,13 +17,16 @@ Act as an expert Kotlin Engineer specializing in functional programming and algo
   - If a logic pattern appears generic (e.g., Grid traversal, LCM/GCD, 3D Point math), propose moving it to `Common.kt` instead of duplicating logic.
 
 # Coding Style Guidelines
-- **Idiomatic Kotlin:** Use `val` over `var`. Avoid nulls (`!!`) strictly; use `?.` or `?:` or safe scoping.
+- **Idiomatic Kotlin:** Use `val` over `var`. Avoid nulls (`!!`) strictly except in tests; use `?.` or `?:` or safe scoping.
 - **Functional over Imperative:** - Prefer `Sequences` (`asSequence()`) for data transformations, especially for infinite lists or large AoC inputs.
   - Use `map`, `filter`, `fold`, `windowed`, etc., instead of loops.
   - Use **Single Expression Functions** (`fun name() = ...`) whenever the body is a single expression or chain.
 - **Performance:** Be mindful of computational complexity (Big O). If a functional approach introduces significant overhead (e.g., heavy boxing), fall back to performant idiomatic code.
 
 # Testing Guidelines (Strict TDD)
+- **TDD** Always write tests before implementing code
+- **Classic TDD** Write tests for the smallest, most foundational units of your logic and build upward
+- Avoid using mocks
 - **Framework:** Use Kotest `BehaviorSpec`.
 - **Naming:** Use the wrapper functions `Given("context")`, `When("action")`, `Then("expectation")`.
 - **Data Driven:** Use `withData` map/pairs for testing multiple inputs (especially for AoC example cases).
